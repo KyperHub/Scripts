@@ -405,24 +405,25 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         end
     end)
 
-    -- 3. تدمير واجهة KyperUI الحالية لمنع التداخل والرسائل المزعجة
+    -- 3. تدمير واجهة KyperUI الحالية لمنع التعارض بالكامل
     if CoreGui:FindFirstChild("KyperUI") then
         CoreGui.KyperUI:Destroy()
     end
     
-    -- 4. التسلسل الزمني المطلوب
+    -- 4. التسلسل الزمني لتشغيل الفارم ثم إعادة بناء الواجهة
     task.spawn(function()
         -- تشغيل UniversalFarm أولاً
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
         end)
         
-        -- انتظار ثانية واحدة
-        task.wait(1)
+        -- انتظار ثانية ونصف لضمان أخذ UniversalFarm وقته في مسح الشاشة
+        task.wait(1.5)
         
-        -- إعادة بناء وتحديث واجهتك الخاصة عبر رابطك
+        -- تشغيل سكربت KyperHub مع كسر الكاش (Cache Bypass) لضمان التحميل
         pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua"))()
+            local bypassCacheUrl = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua?rand=" .. tostring(math.random(10000, 99999))
+            loadstring(game:HttpGet(bypassCacheUrl))()
         end)
     end)
 end)
