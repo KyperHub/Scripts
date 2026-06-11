@@ -8,7 +8,6 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local TeleportService = game:GetService("TeleportService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 
@@ -18,8 +17,6 @@ local StarterGui = game:GetService("StarterGui")
 local UI_WIDTH = 530  
 local UI_HEIGHT = 470 
 local ALLOW_MULTIPLE_EXECUTIONS = false 
-
-local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
 -- ==========================================
 
 local player = Players.LocalPlayer
@@ -327,133 +324,3 @@ SecWelcome:CreateLabel("Welcome back, " .. player.Name .. "!")
 local SecInfo = TabHome:CreateSection("Information")
 SecInfo:CreateLabel("Owner: @Zordnnn")
 SecInfo:CreateLabel("Head Admin: @fr._c")
-SecInfo:CreateLabel("Discord: https://discord.gg/kh1")
-SecInfo:CreateLabel("Website: https://kyperhub.github.io/Website/")
-
-local SecStatus = TabHome:CreateSection("Status")
-SecStatus:CreateLabel("Supported game version!")
-
-
--- [[ Auto Farm Tab ]]
-local TabFarm = Window:CreateTab("Auto Farm")
-local SecRob = TabFarm:CreateSection("Kyper Auto Farm")
-
-local isFarming = false
-local uiConnectionCore = nil
-local uiConnectionPlayer = nil
-local platformConnection = nil
-
-SecRob:CreateButton({Name = "Start Auto Farm"}, function()
-    if isFarming then 
-        sendNotification("KyperHub", "Auto Farm is already running!")
-        return 
-    end
-    isFarming = true
-    
-    local guiTargetCore = game:GetService("CoreGui")
-    if gethui then pcall(function() guiTargetCore = gethui() end) end
-    local guiTargetPlayer = player:WaitForChild("PlayerGui")
-
-    -- 1. مُختطف الواجهات (UI Interceptor)
-    local function blockUI(child)
-        if child.Name ~= "KyperUI" and child.Name ~= "KyperMobileAim" then
-            if child:IsA("ScreenGui") then
-                child.Enabled = false
-                child:GetPropertyChangedSignal("Enabled"):Connect(function() child.Enabled = false end)
-            elseif child:IsA("GuiObject") then
-                child.Visible = false
-                child:GetPropertyChangedSignal("Visible"):Connect(function() child.Visible = false end)
-            end
-            
-            task.spawn(function()
-                for _, v in pairs(child:GetDescendants()) do
-                    if v:IsA("GuiObject") then
-                        v.Visible = false
-                        v:GetPropertyChangedSignal("Visible"):Connect(function() v.Visible = false end)
-                    end
-                end
-            end)
-        end
-    end
-
-    uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
-    uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
-
-    -- 2. مُختطف المنصات بالقرب الشديد من اللاعب (Proximity Platform Hijacker)
-    platformConnection = RunService.Stepped:Connect(function()
-        local char = player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            for _, v in pairs(workspace:GetChildren()) do
-                if v:IsA("BasePart") then
-                    if (v.Position - hrp.Position).Magnitude < 12 then
-                        local logo = v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture")
-                        if logo then
-                            logo:Destroy() 
-                            v.Name = "KyperPlatform" 
-                        end
-                    end
-                    
-                    if v.Name == "KyperPlatform" then
-                        v.Color = Color3.fromRGB(140, 0, 255)
-                        v.Material = Enum.Material.Neon
-                        v.Transparency = 0.4
-                    end
-                end
-            end
-        end
-    end)
-
-    -- 3. خطوة الذاكرة الآمنة (Safe Memory Trick) لحماية واجهتنا من الحذف!
-    local myUI = CoreGui:FindFirstChild("KyperUI")
-    if myUI then
-        myUI.Parent = nil -- نخفي الواجهة في الذاكرة الوهمية عشان الفارم ما يمسحها
-    end
-    
-    sendNotification("KyperHub", "Starting Auto Farm... Securing UI.")
-
-    -- 4. التسلسل الزمني لتشغيل الفارم ثم إرجاع الواجهة
-    task.spawn(function()
-        -- تشغيل UniversalFarm أولاً
-        pcall(function()
-            loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
-        end)
-        
-        -- ننتظر ثانيتين عشان يخلص السكربت الأجنبي مسح الشاشة
-        task.wait(2)
-        
-        -- نرجع الواجهة من الذاكرة بأمان
-        if myUI then
-            myUI.Parent = CoreGui
-            Window.MainFrame.Visible = false -- نخفي القائمة الكبيرة
-            Window.OpenBtn.Visible = true    -- ونظهر حرف K فقط
-            sendNotification("KyperHub", "KyperHub is Ready!")
-        end
-    end)
-end)
-
-SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fromRGB(255, 80, 80)}, function()
-    if not isFarming then
-        sendNotification("KyperHub", "Auto Farm is not running!")
-        return
-    end
-    
-    isFarming = false
-    sendNotification("KyperHub", "Stopping Farm... Rejoining to clean memory!")
-    
-    if uiConnectionCore then uiConnectionCore:Disconnect(); uiConnectionCore = nil end
-    if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
-    if platformConnection then platformConnection:Disconnect(); platformConnection = nil end
-
-    pcall(function()
-        local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
-        if queue_on_teleport and KYPER_HUB_URL ~= "" then
-            queue_on_teleport('loadstring(game:HttpGet("' .. KYPER_HUB_URL .. '"))()')
-        end
-    end)
-    
-    task.wait(1.5)
-    TeleportService:Teleport(game.PlaceId, player)
-end)
-
-SecRob:CreateLabel("Note: Do not start farm multiple times!")
