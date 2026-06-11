@@ -387,16 +387,14 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         if hrp then
             for _, v in pairs(workspace:GetChildren()) do
                 if v:IsA("BasePart") then
-                    -- التحقق من أن البارت قريب جداً من اللاعب (مسافة أقل من 12 بُعد)
                     if (v.Position - hrp.Position).Magnitude < 12 then
                         local logo = v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture")
                         if logo then
-                            logo:Destroy() -- تدمير الشعار الأجنبي
-                            v.Name = "KyperPlatform" -- تمييز المنصة
+                            logo:Destroy() 
+                            v.Name = "KyperPlatform" 
                         end
                     end
                     
-                    -- تطبيق اللون المخصص لمنصتك فقط
                     if v.Name == "KyperPlatform" then
                         v.Color = Color3.fromRGB(140, 0, 255)
                         v.Material = Enum.Material.Neon
@@ -412,14 +410,16 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     Window.OpenBtn.Visible = false
     sendNotification("KyperHub", "Starting Auto Farm... Reloading UI.")
     
-    -- تشغيل سكربت الفارم
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
-    end)
-    
-    -- إعادة إظهار زر KyperHub (Reload) بعد ثانية واحدة
+    -- 4. نظام الانتشار والتشغيل الذكي بعد ثانية واحدة بالضبط
     task.spawn(function()
         task.wait(1)
+        
+        -- تشغيل سكربت الفارم الخاص بك (KyperHub Custom Call)
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua"))()
+        end)
+        
+        -- إعادة إظهار زر KyperHub (Reload) بعد ثانية واحدة
         if Window and Window.OpenBtn then
             Window.OpenBtn.Visible = true
             sendNotification("KyperHub", "KyperHub is Ready!")
