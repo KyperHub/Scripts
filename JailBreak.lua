@@ -17,7 +17,7 @@ local StarterGui = game:GetService("StarterGui")
 -- ==========================================
 local UI_WIDTH = 530  
 local UI_HEIGHT = 470 
-local ALLOW_MULTIPLE_EXECUTIONS = true 
+local ALLOW_MULTIPLE_EXECUTIONS = false 
 
 -- رابط السكربت للتشغيل التلقائي عند الـ Rejoin
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
@@ -350,7 +350,6 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         return 
     end
     isFarming = true
-    sendNotification("KyperHub", "Starting Auto Farm... (Powered by KyperHub)")
     
     local guiTargetCore = game:GetService("CoreGui")
     if gethui then pcall(function() guiTargetCore = gethui() end) end
@@ -381,34 +380,50 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
-    -- 2. مُختطف المنصات البنفسجي الذكي (Smart Purple Platform Hijacker)
+    -- 2. مُختطف المنصات بالقرب الشديد من اللاعب (Proximity Platform Hijacker)
     platformConnection = RunService.Stepped:Connect(function()
-        for _, v in pairs(workspace:GetChildren()) do
-            if v:IsA("BasePart") then
-                -- الكشف عن مجسم المنصة من خلال احتوائه على شعار
-                local logo = v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture")
-                if logo then
-                    logo:Destroy()
-                    v.Name = "KyperPlatform"
-                end
-                
-                -- تطبيق اللون البنفسجي وقفل الخصائص باستمرار
-                if v.Name == "KyperPlatform" then
-                    v.Color = Color3.fromRGB(140, 0, 255)
-                    v.Material = Enum.Material.Neon
-                    v.Transparency = 0.4
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            for _, v in pairs(workspace:GetChildren()) do
+                if v:IsA("BasePart") then
+                    -- التحقق من أن البارت قريب جداً من اللاعب (مسافة أقل من 12 بُعد)
+                    if (v.Position - hrp.Position).Magnitude < 12 then
+                        local logo = v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture")
+                        if logo then
+                            logo:Destroy() -- تدمير الشعار الأجنبي
+                            v.Name = "KyperPlatform" -- تمييز المنصة
+                        end
+                    end
+                    
+                    -- تطبيق اللون المخصص لمنصتك فقط
+                    if v.Name == "KyperPlatform" then
+                        v.Color = Color3.fromRGB(140, 0, 255)
+                        v.Material = Enum.Material.Neon
+                        v.Transparency = 0.4
+                    end
                 end
             end
         end
     end)
 
-    -- 3. إخفاء واجهة KyperHub بالكامل وبشكل مطلق أثناء الفارم
+    -- 3. إخفاء واجهتنا وعمل (Reload)
     Window.MainFrame.Visible = false
     Window.OpenBtn.Visible = false
+    sendNotification("KyperHub", "Starting Auto Farm... Reloading UI.")
     
     -- تشغيل سكربت الفارم
     pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
+    end)
+    
+    -- إعادة إظهار زر KyperHub (Reload) بعد ثانية واحدة
+    task.spawn(function()
+        task.wait(1)
+        if Window and Window.OpenBtn then
+            Window.OpenBtn.Visible = true
+            sendNotification("KyperHub", "KyperHub is Ready!")
+        end
     end)
 end)
 
