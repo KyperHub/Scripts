@@ -19,7 +19,6 @@ local UI_WIDTH = 530
 local UI_HEIGHT = 470 
 local ALLOW_MULTIPLE_EXECUTIONS = false 
 
--- رابط السكربت للتشغيل التلقائي عند الـ Rejoin
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
 -- ==========================================
 
@@ -405,26 +404,31 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         end
     end)
 
-    -- 3. تدمير واجهة KyperUI الحالية لمنع التعارض بالكامل
-    if CoreGui:FindFirstChild("KyperUI") then
-        CoreGui.KyperUI:Destroy()
+    -- 3. خطوة الذاكرة الآمنة (Safe Memory Trick) لحماية واجهتنا من الحذف!
+    local myUI = CoreGui:FindFirstChild("KyperUI")
+    if myUI then
+        myUI.Parent = nil -- نخفي الواجهة في الذاكرة الوهمية عشان الفارم ما يمسحها
     end
     
-    -- 4. التسلسل الزمني لتشغيل الفارم ثم إعادة بناء الواجهة
+    sendNotification("KyperHub", "Starting Auto Farm... Securing UI.")
+
+    -- 4. التسلسل الزمني لتشغيل الفارم ثم إرجاع الواجهة
     task.spawn(function()
         -- تشغيل UniversalFarm أولاً
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
         end)
         
-        -- انتظار ثانية ونصف لضمان أخذ UniversalFarm وقته في مسح الشاشة
-        task.wait(1.5)
+        -- ننتظر ثانيتين عشان يخلص السكربت الأجنبي مسح الشاشة
+        task.wait(2)
         
-        -- تشغيل سكربت KyperHub مع كسر الكاش (Cache Bypass) لضمان التحميل
-        pcall(function()
-            local bypassCacheUrl = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua?rand=" .. tostring(math.random(10000, 99999))
-            loadstring(game:HttpGet(bypassCacheUrl))()
-        end)
+        -- نرجع الواجهة من الذاكرة بأمان
+        if myUI then
+            myUI.Parent = CoreGui
+            Window.MainFrame.Visible = false -- نخفي القائمة الكبيرة
+            Window.OpenBtn.Visible = true    -- ونظهر حرف K فقط
+            sendNotification("KyperHub", "KyperHub is Ready!")
+        end
     end)
 end)
 
