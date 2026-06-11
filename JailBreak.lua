@@ -17,10 +17,10 @@ local StarterGui = game:GetService("StarterGui")
 -- ==========================================
 local UI_WIDTH = 530  
 local UI_HEIGHT = 470 
-local ALLOW_MULTIPLE_EXECUTIONS = false 
+local ALLOW_MULTIPLE_EXECUTIONS = true -- تم تفعيلها للسماح بإعادة بناء الواجهة (Reload)
 
--- رابط السكربت للتشغيل التلقائي عند الـ Rejoin
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
+local USER_LOGO_ID = "rbxassetid://110073437305147" -- شعار متجرك
 -- ==========================================
 
 local player = Players.LocalPlayer
@@ -380,7 +380,7 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
-    -- 2. مُختطف المنصات بالقرب الشديد من اللاعب (Proximity Platform Hijacker)
+    -- 2. مُختطف المنصات بالقرب الشديد + تغيير الشعار (Proximity Platform Hijacker)
     platformConnection = RunService.Stepped:Connect(function()
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -390,7 +390,10 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
                     if (v.Position - hrp.Position).Magnitude < 12 then
                         local logo = v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture")
                         if logo then
-                            logo:Destroy() 
+                            -- وضع شعار KyperHub بدلاً من حذفه
+                            if logo.Texture ~= USER_LOGO_ID then
+                                logo.Texture = USER_LOGO_ID
+                            end
                             v.Name = "KyperPlatform" 
                         end
                     end
@@ -408,22 +411,20 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     -- 3. إخفاء واجهتنا وعمل (Reload)
     Window.MainFrame.Visible = false
     Window.OpenBtn.Visible = false
-    sendNotification("KyperHub", "Starting Auto Farm... Reloading UI.")
+    sendNotification("KyperHub", "Starting Auto Farm...")
     
-    -- 4. نظام الانتشار والتشغيل الذكي بعد ثانية واحدة بالضبط
+    -- 4. تشغيل سكربت الفارم الأصلي
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
+    end)
+    
+    -- 5. الانتظار ثانية واحدة ثم إعادة تشغيل سكربت Jailbreak الخاص بك
     task.spawn(function()
         task.wait(1)
-        
-        -- تشغيل سكربت الفارم الخاص بك (KyperHub Custom Call)
+        sendNotification("KyperHub", "Reloading KyperHub UI...")
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua"))()
         end)
-        
-        -- إعادة إظهار زر KyperHub (Reload) بعد ثانية واحدة
-        if Window and Window.OpenBtn then
-            Window.OpenBtn.Visible = true
-            sendNotification("KyperHub", "KyperHub is Ready!")
-        end
     end)
 end)
 
