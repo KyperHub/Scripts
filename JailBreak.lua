@@ -1,6 +1,5 @@
 --[[
     KyperHub - Jailbreak (Lasion UI Edition)
-    Created For: Zordnnn
     Theme: Lasion Dark & Purple
 ]]
 
@@ -8,6 +7,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local TeleportService = game:GetService("TeleportService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 
@@ -17,6 +17,9 @@ local StarterGui = game:GetService("StarterGui")
 local UI_WIDTH = 530  
 local UI_HEIGHT = 470 
 local ALLOW_MULTIPLE_EXECUTIONS = false 
+
+-- رابط سكربتك الخاص لإعادة التشغيل بعد الـ Rejoin
+local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
 -- ==========================================
 
 local player = Players.LocalPlayer
@@ -32,7 +35,7 @@ end
 if CoreGui:FindFirstChild("KyperMobileAim") then CoreGui.KyperMobileAim:Destroy() end
 
 -- ==========================================
--- نظام حظر الإشعارات الغريبة (Notification Blocker)
+-- نظام حظر الإشعارات الغريبة
 -- ==========================================
 pcall(function()
     local oldSetCore
@@ -324,3 +327,115 @@ SecWelcome:CreateLabel("Welcome back, " .. player.Name .. "!")
 local SecInfo = TabHome:CreateSection("Information")
 SecInfo:CreateLabel("Owner: @Zordnnn")
 SecInfo:CreateLabel("Head Admin: @fr._c")
+SecInfo:CreateLabel("Discord: https://discord.gg/kh1")
+SecInfo:CreateLabel("Website: https://kyperhub.github.io/Website/")
+
+local SecStatus = TabHome:CreateSection("Status")
+SecStatus:CreateLabel("Supported game version!")
+
+
+-- [[ Auto Farm Tab ]]
+local TabFarm = Window:CreateTab("Auto Farm")
+local SecRob = TabFarm:CreateSection("Kyper Auto Farm")
+
+local isFarming = false
+local uiConnectionCore = nil
+local uiConnectionPlayer = nil
+
+-- دالة فحص النصوص داخل الواجهات للبحث عن كلمة "Auth"
+local function isAllowedUI(gui)
+    if gui.Name == "KyperUI" or gui.Name == "KyperMobileAim" then return true end
+    
+    local allowed = false
+    pcall(function()
+        if string.find(string.lower(gui.Name), "auth") then allowed = true end
+        
+        for _, v in pairs(gui:GetDescendants()) do
+            if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
+                if v.Text and string.find(string.lower(v.Text), "auth") then
+                    allowed = true
+                    break
+                end
+            end
+            if string.find(string.lower(v.Name), "auth") then
+                allowed = true
+                break
+            end
+        end
+    end)
+    return allowed
+end
+
+SecRob:CreateButton({Name = "Start Auto Farm"}, function()
+    if isFarming then 
+        sendNotification("KyperHub", "Auto Farm is already running!")
+        return 
+    end
+    isFarming = true
+    sendNotification("KyperHub", "Starting Farm... Please login if asked.")
+    
+    local guiTargetCore = game:GetService("CoreGui")
+    if gethui then pcall(function() guiTargetCore = gethui() end) end
+    local guiTargetPlayer = player:WaitForChild("PlayerGui")
+
+    -- مُختطف الواجهات الذكي (الذي يسمح للـ Auth فقط)
+    local function blockUI(child)
+        -- ننتظر جزء بسيط جداً من الثانية لتتمكن الواجهة من رسم النصوص بداخلها
+        task.defer(function()
+            task.wait(0.1)
+            if not isAllowedUI(child) then
+                if child:IsA("ScreenGui") then
+                    child.Enabled = false
+                    child:GetPropertyChangedSignal("Enabled"):Connect(function() child.Enabled = false end)
+                elseif child:IsA("GuiObject") then
+                    child.Visible = false
+                    child:GetPropertyChangedSignal("Visible"):Connect(function() child.Visible = false end)
+                end
+                
+                task.spawn(function()
+                    for _, v in pairs(child:GetDescendants()) do
+                        if v:IsA("GuiObject") then
+                            v.Visible = false
+                            v:GetPropertyChangedSignal("Visible"):Connect(function() v.Visible = false end)
+                        end
+                    end
+                end)
+            end
+        end)
+    end
+
+    uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
+    uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
+
+    -- إخفاء الواجهة الرئيسية مؤقتاً لتسهيل إدخال الـ Key
+    Window.MainFrame.Visible = false
+    Window.OpenBtn.Visible = true
+
+    -- تشغيل سكربت الفارم
+    pcall(function()
+        loadstring(game:HttpGet("https://api.luaauth.com/loader/IrpglribYB3xIpFUCsTTpm7tr48y8Smb"))()
+    end)
+end)
+
+SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fromRGB(255, 80, 80)}, function()
+    if not isFarming then
+        sendNotification("KyperHub", "Auto Farm is not running!")
+        return
+    end
+    
+    isFarming = false
+    sendNotification("KyperHub", "Stopping Farm... Rejoining!")
+    
+    if uiConnectionCore then uiConnectionCore:Disconnect(); uiConnectionCore = nil end
+    if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
+
+    pcall(function()
+        local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
+        if queue_on_teleport and KYPER_HUB_URL ~= "" then
+            queue_on_teleport('loadstring(game:HttpGet("' .. KYPER_HUB_URL .. '"))()')
+        end
+    end)
+    
+    task.wait(1.5)
+    TeleportService:Teleport(game.PlaceId, player)
+end)
