@@ -36,6 +36,21 @@ end
 if CoreGui:FindFirstChild("KyperMobileAim") then CoreGui.KyperMobileAim:Destroy() end
 
 -- ==========================================
+-- نظام حظر الإشعارات الغريبة (Notification Blocker)
+-- ==========================================
+pcall(function()
+    local oldSetCore
+    oldSetCore = hookfunction(StarterGui.SetCore, function(self, name, data)
+        if name == "SendNotification" and type(data) == "table" then
+            if data.Title ~= "KyperHub" and data.Title ~= "KyperHub Security" then
+                return 
+            end
+        end
+        return oldSetCore(self, name, data)
+    end)
+end)
+
+-- ==========================================
 -- 1. Custom UI Library (Lasion Style)
 -- ==========================================
 local Kyper = {}
@@ -325,7 +340,9 @@ local TabFarm = Window:CreateTab("Auto Farm")
 local SecRob = TabFarm:CreateSection("Kyper Auto Farm")
 
 local isFarming = false
-local uiConnection = nil
+local uiConnectionCore = nil
+local uiConnectionPlayer = nil
+local platformConnection = nil
 
 SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     if isFarming then 
@@ -335,10 +352,12 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     isFarming = true
     sendNotification("KyperHub", "Starting Auto Farm... (Powered by KyperHub)")
     
-    local guiTarget = game:GetService("CoreGui")
-    if gethui then pcall(function() guiTarget = gethui() end) end
+    local guiTargetCore = game:GetService("CoreGui")
+    if gethui then pcall(function() guiTargetCore = gethui() end) end
+    local guiTargetPlayer = player:WaitForChild("PlayerGui")
 
-    uiConnection = guiTarget.ChildAdded:Connect(function(child)
+    -- 1. مُختطف الواجهات (UI Interceptor)
+    local function blockUI(child)
         if child.Name ~= "KyperUI" and child.Name ~= "KyperMobileAim" then
             if child:IsA("ScreenGui") then
                 child.Enabled = false
@@ -357,10 +376,53 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
                 end
             end)
         end
+    end
+
+    uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
+    uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
+
+    -- 2. مُختطف المنصات (Platform Hijacker)
+    -- يفحص باستمرار تحت اللاعب ليجد البارت الذي يضعه السكربت ويحوله لمنصة تابعة لـ KyperHub
+    platformConnection = RunService.Stepped:Connect(function()
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            -- بحث عن البارت الموجود مباشرة تحت أقدام اللاعب
+            local ray = Ray.new(hrp.Position, Vector3.new(0, -5, 0))
+            local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {char})
+            
+            if hit and hit.Anchored and hit.Size.Y < 3 then
+                -- تحويل المنصة لتبدو كأنها من برمجة KyperHub
+                hit.Color = Color3.fromRGB(140, 0, 255)
+                hit.Material = Enum.Material.Neon
+                hit.Transparency = 0.4
+                
+                -- تدمير أي شعار (Decal/Texture)
+                for _, v in ipairs(hit:GetChildren()) do
+                    if v:IsA("Decal") or v:IsA("Texture") then
+                        v:Destroy()
+                    end
+                end
+            end
+        end
     end)
 
+    -- إخفاء واجهتنا للتأكد
+    Window.MainFrame.Visible = false
+    Window.OpenBtn.Visible = false
+
+    -- تشغيل سكربت الفارم
     pcall(function()
         loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
+    end)
+    
+    -- إرجاع زر KyperHub بعد 30 ثانية
+    task.spawn(function()
+        task.wait(30)
+        if Window and Window.OpenBtn then
+            Window.OpenBtn.Visible = true
+            sendNotification("KyperHub", "You can now re-open KyperHub.")
+        end
     end)
 end)
 
@@ -373,10 +435,9 @@ SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fro
     isFarming = false
     sendNotification("KyperHub", "Stopping Farm... Rejoining to clean memory!")
     
-    if uiConnection then 
-        uiConnection:Disconnect() 
-        uiConnection = nil 
-    end
+    if uiConnectionCore then uiConnectionCore:Disconnect(); uiConnectionCore = nil end
+    if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
+    if platformConnection then platformConnection:Disconnect(); platformConnection = nil end
 
     pcall(function()
         local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
