@@ -17,7 +17,7 @@ local StarterGui = game:GetService("StarterGui")
 -- ==========================================
 local UI_WIDTH = 530  
 local UI_HEIGHT = 470 
-local ALLOW_MULTIPLE_EXECUTIONS = true 
+local ALLOW_MULTIPLE_EXECUTIONS = false 
 
 -- رابط السكربت للتشغيل التلقائي عند الـ Rejoin
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
@@ -405,12 +405,12 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         end
     end)
 
-    -- 3. إخفاء واجهتنا وعمل (Reload)
-    Window.MainFrame.Visible = false
-    Window.OpenBtn.Visible = false
-    sendNotification("KyperHub", "Starting Auto Farm... Reloading UI.")
+    -- 3. تدمير واجهة KyperUI الحالية لمنع التداخل والرسائل المزعجة
+    if CoreGui:FindFirstChild("KyperUI") then
+        CoreGui.KyperUI:Destroy()
+    end
     
-    -- 4. التسلسل الزمني المطلوب:
+    -- 4. التسلسل الزمني المطلوب
     task.spawn(function()
         -- تشغيل UniversalFarm أولاً
         pcall(function()
@@ -420,16 +420,10 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         -- انتظار ثانية واحدة
         task.wait(1)
         
-        -- تشغيل سكربت KyperHub الخاص بك ثانياً
+        -- إعادة بناء وتحديث واجهتك الخاصة عبر رابطك
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua"))()
         end)
-        
-        -- إرجاع زر الـ K لتمكين الفتح مجدداً
-        if Window and Window.OpenBtn then
-            Window.OpenBtn.Visible = true
-            sendNotification("KyperHub", "KyperHub is Ready!")
-        end
     end)
 end)
 
