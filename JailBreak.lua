@@ -17,7 +17,7 @@ local StarterGui = game:GetService("StarterGui")
 -- ==========================================
 local UI_WIDTH = 530  
 local UI_HEIGHT = 470 
-local ALLOW_MULTIPLE_EXECUTIONS = false 
+local ALLOW_MULTIPLE_EXECUTIONS = true 
 
 -- رابط السكربت للتشغيل التلقائي عند الـ Rejoin
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
