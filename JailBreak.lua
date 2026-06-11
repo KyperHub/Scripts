@@ -19,7 +19,7 @@ local UI_WIDTH = 530
 local UI_HEIGHT = 470 
 local ALLOW_MULTIPLE_EXECUTIONS = false 
 
--- رابط السكربت المحدث للتشغيل التلقائي عند الـ Rejoin
+-- رابط السكربت للتشغيل التلقائي عند الـ Rejoin
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
 -- ==========================================
 
@@ -381,27 +381,25 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
-    -- 2. مُختطف المنصات (Platform Hijacker)
-    -- يفحص باستمرار تحت اللاعب ليجد البارت الذي يضعه السكربت ويحوله لمنصة تابعة لـ KyperHub
+    -- 2. مُختطف المنصات الذكي (Smart Platform Hijacker)
     platformConnection = RunService.Stepped:Connect(function()
-        local char = player.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            -- بحث عن البارت الموجود مباشرة تحت أقدام اللاعب
-            local ray = Ray.new(hrp.Position, Vector3.new(0, -5, 0))
-            local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {char})
-            
-            if hit and hit.Anchored and hit.Size.Y < 3 then
-                -- تحويل المنصة لتبدو كأنها من برمجة KyperHub
-                hit.Color = Color3.fromRGB(140, 0, 255)
-                hit.Material = Enum.Material.Neon
-                hit.Transparency = 0.4
+        -- يفحص البارتات الموجودة مباشرة داخل الـ workspace
+        for _, v in pairs(workspace:GetChildren()) do
+            if v:IsA("BasePart") then
+                -- يبحث عن البارت اللي يحتوي على شعار السكربت الأجنبي
+                local logo = v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture")
                 
-                -- تدمير أي شعار (Decal/Texture)
-                for _, v in ipairs(hit:GetChildren()) do
-                    if v:IsA("Decal") or v:IsA("Texture") then
-                        v:Destroy()
-                    end
+                if logo then
+                    -- تدمير الشعار وتغيير اسم البارت للتعرف عليه
+                    logo:Destroy()
+                    v.Name = "KyperPlatform"
+                end
+                
+                -- إجبار المنصة على الظهور بلون وشكل KyperHub بشكل مستمر
+                if v.Name == "KyperPlatform" then
+                    v.Color = Color3.fromRGB(140, 0, 255)
+                    v.Material = Enum.Material.Neon
+                    v.Transparency = 0.2 -- عشان تكون واضحة وما تختفي أبداً
                 end
             end
         end
