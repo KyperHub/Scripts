@@ -21,6 +21,9 @@ local ALLOW_MULTIPLE_EXECUTIONS = false
 
 -- رابط السكربت للتشغيل التلقائي عند الـ Rejoin
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
+
+-- أيدي الشعار الخاص بك
+local USER_LOGO_ID = "rbxassetid://110073437305147"
 -- ==========================================
 
 local player = Players.LocalPlayer
@@ -381,25 +384,23 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
-    -- 2. مُختطف المنصات الذكي (Smart Platform Hijacker)
+    -- 2. مُختطف المنصات الذكي (Smart Platform Texture Hijacker)
     platformConnection = RunService.Stepped:Connect(function()
-        -- يفحص البارتات الموجودة مباشرة داخل الـ workspace
-        for _, v in pairs(workspace:GetChildren()) do
-            if v:IsA("BasePart") then
-                -- يبحث عن البارت اللي يحتوي على شعار السكربت الأجنبي
-                local logo = v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture")
-                
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            -- بحث دقيق عن طريق شعاع ينزل أسفل قدم اللاعب بـ 10 أبعاد فقط
+            local ray = Ray.new(hrp.Position, Vector3.new(0, -10, 0))
+            local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {char})
+            
+            if hit and hit.Anchored then
+                -- البحث عن أي صورة أو شعار في البارت
+                local logo = hit:FindFirstChildOfClass("Decal") or hit:FindFirstChildOfClass("Texture")
                 if logo then
-                    -- تدمير الشعار وتغيير اسم البارت للتعرف عليه
-                    logo:Destroy()
-                    v.Name = "KyperPlatform"
-                end
-                
-                -- إجبار المنصة على الظهور بلون وشكل KyperHub بشكل مستمر
-                if v.Name == "KyperPlatform" then
-                    v.Color = Color3.fromRGB(140, 0, 255)
-                    v.Material = Enum.Material.Neon
-                    v.Transparency = 0.2 -- عشان تكون واضحة وما تختفي أبداً
+                    -- تغيير الـ ID الخاص بالصورة فقط دون التأثير على خصائص المنصة
+                    if logo.Texture ~= USER_LOGO_ID then
+                        logo.Texture = USER_LOGO_ID
+                    end
                 end
             end
         end
