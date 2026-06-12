@@ -297,7 +297,7 @@ SecInfo:CreateLabel("Website: https://kyperhub.github.io/Website/")
 local SecRob = Window:CreateSection("Control Panel")
 
 local isFarming = false
-local isOnlyCarsEnabled = true
+local isOnlyCarsEnabled = false -- تم تغيير الحالة الافتراضية إلى OFF بناءً على طلبك
 local uiConnectionCore = nil
 local uiConnectionPlayer = nil
 local platformConnection = nil
@@ -417,6 +417,7 @@ SecRob:CreateButton({Name = "Stop & Rejoin Server", Color = Color3.fromRGB(255, 
     TeleportService:Teleport(game.PlaceId, player)
 end)
 
-SecRob:CreateToggle({Name = "Only Cars (Anti-Heli)", Default = true, Locked = true}, function(state)
-    isOnlyCarsEnabled = true 
+-- تم تغيير الحالة إلى Default = false وتم فك القفل (Locked = false)
+SecRob:CreateToggle({Name = "Only Cars", Default = false, Locked = false}, function(state)
+    isOnlyCarsEnabled = state 
 end)
