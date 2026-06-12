@@ -1,5 +1,6 @@
 --[[
     KyperHub - Jailbreak (Lasion UI Edition)
+    Created For: Zordnnn
     Theme: Lasion Dark & Purple
 ]]
 
@@ -40,7 +41,7 @@ pcall(function()
     local oldSetCore
     oldSetCore = hookfunction(StarterGui.SetCore, function(self, name, data)
         if name == "SendNotification" and type(data) == "table" then
-            if data.Title ~= "KyperHub" and data.Title ~= "KyperHub Security" then
+            if data.Title ~= "KyperHub" then
                 return 
             end
         end
@@ -442,7 +443,6 @@ SecInfo:CreateLabel("Head Admin: @fr._c")
 SecInfo:CreateLabel("Discord: https://discord.gg/kh1")
 SecInfo:CreateLabel("Website: https://kyperhub.github.io/Website/")
 
-
 -- [[ Combat Tab (Magic Bullet & Aimbot) ]]
 local TabCombat = Window:CreateTab("Combat")
 local SecMagic = TabCombat:CreateSection("Magic Bullet Settings")
@@ -452,7 +452,7 @@ local TeamCheck_Enabled = true
 local WallCheck_Enabled = true
 local ShowFOV_Enabled = false
 local FOV_Radius = 150
-local CurrentTarget = nil -- المتغير السري المعزول لحل مشكلة الكراش
+local CurrentTarget = nil
 
 -- إعداد الـ FOV Circle
 local FOVCircle = Drawing.new("Circle")
@@ -484,17 +484,26 @@ SecMagic:CreateSlider({Name = "FOV Radius", Min = 50, Max = 600, Default = 150},
     FOVCircle.Radius = value
 end)
 
+-- وظيفة فحص الجدران بنظام Raycast الحديث (آمن ومستقر جداً)
 local function isVisible(targetPart)
     if not WallCheck_Enabled then return true end
     local origin = Camera.CFrame.Position
     local direction = (targetPart.Position - origin).Unit * (targetPart.Position - origin).Magnitude
-    local ray = Ray.new(origin, direction)
-    local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {player.Character, Camera})
     
-    if hit and hit:IsDescendantOf(targetPart.Parent) then
-        return true
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {player.Character, Camera}
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.IgnoreWater = true
+
+    local result = workspace:Raycast(origin, direction, raycastParams)
+    
+    if result then
+        if result.Instance:IsDescendantOf(targetPart.Parent) then
+            return true
+        end
+        return false -- اصطدم بجدار
     end
-    return false
+    return true -- لا يوجد جدار يعيق الرؤية
 end
 
 local function getClosestPlayerToCursor()
@@ -523,7 +532,7 @@ local function getClosestPlayerToCursor()
     return closestPlayer
 end
 
--- حلقة منفصلة للبحث عن الخصم في الخلفية لمنع اللاغ والانهيار (Anti-Crash Loop)
+-- حلقة منفصلة في الخلفية للبحث عن الهدف وتحديث الدائرة بدون التأثير على اللعبة (Anti-Crash)
 RunService.RenderStepped:Connect(function()
     if ShowFOV_Enabled then
         FOVCircle.Position = UserInputService:GetMouseLocation()
@@ -536,7 +545,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- اختطاف الميتاتيبول لتوجيه الرصاص بسلاسة
+-- اختطاف الميتاتيبول وتوجيه الرصاص فقط (Raycast Filter)
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
@@ -545,21 +554,27 @@ mt.__namecall = newcclosure(function(self, ...)
     local args = {...}
     local method = getnamecallmethod()
 
-    -- فلترة سريعة: لا نتدخل إلا إذا كان الهدف موجوداً والحدث هو إطلاق نار (يمنع الكراش)
-    if MagicBullet_Enabled and CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("Head") then
-        if method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" then
-            local origin = args[1].Origin
-            local direction = (CurrentTarget.Character.Head.Position - origin).Unit * 1000
-            args[1] = Ray.new(origin, direction)
-            return oldNamecall(self, unpack(args))
-        elseif method == "Raycast" then
-            local origin = args[1]
-            local direction = (CurrentTarget.Character.Head.Position - origin).Unit * 1000
-            args[2] = direction
-            return oldNamecall(self, unpack(args))
+    -- الفلتر السحري: لا يتدخل إلا إذا لم يكن السكربت هو المستدعي (not checkcaller)
+    if MagicBullet_Enabled and CurrentTarget and not checkcaller() then
+        local targetHead = CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("Head")
+        if targetHead and self == workspace then
+            if method == "Raycast" then
+                local origin = args[1]
+                local direction = args[2]
+                -- التأكد أن الشعاع طويل (مثل الرصاصة) وليس شعاع فيزياء قصير لتجنب الكراش
+                if typeof(direction) == "Vector3" and direction.Magnitude > 50 then
+                    args[2] = (targetHead.Position - origin).Unit * direction.Magnitude
+                    return oldNamecall(self, unpack(args))
+                end
+            elseif string.find(method, "FindPartOnRay") then
+                local ray = args[1]
+                if typeof(ray) == "Ray" and ray.Direction.Magnitude > 50 then
+                    args[1] = Ray.new(ray.Origin, (targetHead.Position - ray.Origin).Unit * ray.Direction.Magnitude)
+                    return oldNamecall(self, unpack(args))
+                end
+            end
         end
     end
-    
     return oldNamecall(self, ...)
 end)
 setreadonly(mt, true)
@@ -582,7 +597,7 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     if isFarming then return end
     isFarming = true
     
-    sendNotification("KyperHub", "Auto Farm: ON")
+    sendNotification("KyperHub", "ON")
     
     local guiTargetCore = game:GetService("CoreGui")
     if gethui then pcall(function() guiTargetCore = gethui() end) end
@@ -684,7 +699,7 @@ SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fro
     if not isFarming then return end
     isFarming = false
     
-    sendNotification("KyperHub", "Auto Farm: OFF")
+    sendNotification("KyperHub", "OFF")
     
     if uiConnectionCore then uiConnectionCore:Disconnect(); uiConnectionCore = nil end
     if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
