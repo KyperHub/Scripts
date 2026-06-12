@@ -1,6 +1,7 @@
 --[[
     KyperHub - Jailbreak (Lasion UI Edition)
-    Theme: Lasion Dark & Purple
+    Created For: Zordnnn
+    Theme: Lasion Dark & Pink
 ]]
 
 local Players = game:GetService("Players")
@@ -17,9 +18,6 @@ local StarterGui = game:GetService("StarterGui")
 local UI_WIDTH = 530  
 local UI_HEIGHT = 470 
 local ALLOW_MULTIPLE_EXECUTIONS = false 
-
--- رابط سكربتك الخاص لإعادة التشغيل بعد الـ Rejoin
-local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
 -- ==========================================
 
 local player = Players.LocalPlayer
@@ -35,7 +33,7 @@ end
 if CoreGui:FindFirstChild("KyperMobileAim") then CoreGui.KyperMobileAim:Destroy() end
 
 -- ==========================================
--- نظام حظر الإشعارات الغريبة
+-- نظام حظر الإشعارات الغريبة (Notification Blocker)
 -- ==========================================
 pcall(function()
     local oldSetCore
@@ -66,14 +64,14 @@ function Kyper:CreateWindow(titleText)
     OpenBtn.Position = UDim2.new(0, 20, 0, 20)
     OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
     OpenBtn.Text = "K"
-    OpenBtn.TextColor3 = Color3.fromRGB(140, 0, 255)
+    OpenBtn.TextColor3 = Color3.fromRGB(255, 105, 180) -- وردي مضيء
     OpenBtn.Font = Enum.Font.GothamBold
     OpenBtn.TextSize = 24
     OpenBtn.Visible = false
     OpenBtn.Parent = ScreenGui
     Instance.new("UICorner", OpenBtn).CornerRadius = UDim.new(1, 0)
     local OpenStroke = Instance.new("UIStroke", OpenBtn)
-    OpenStroke.Color = Color3.fromRGB(140, 0, 255)
+    OpenStroke.Color = Color3.fromRGB(255, 105, 180)
     OpenStroke.Thickness = 2
 
     local MainFrame = Instance.new("Frame")
@@ -87,7 +85,7 @@ function Kyper:CreateWindow(titleText)
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
     
     local MainStroke = Instance.new("UIStroke", MainFrame)
-    MainStroke.Color = Color3.fromRGB(140, 0, 255)
+    MainStroke.Color = Color3.fromRGB(255, 105, 180)
     MainStroke.Thickness = 1
 
     local Header = Instance.new("Frame", MainFrame)
@@ -193,7 +191,7 @@ function Kyper:CreateWindow(titleText)
         Page.Position = UDim2.new(0, 10, 0, 85)
         Page.BackgroundTransparency = 1
         Page.ScrollBarThickness = 2
-        Page.ScrollBarImageColor3 = Color3.fromRGB(140, 0, 255)
+        Page.ScrollBarImageColor3 = Color3.fromRGB(255, 105, 180)
         Page.Visible = false
         Page.CanvasSize = UDim2.new(0, 0, 0, 0)
         Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -341,30 +339,7 @@ local SecRob = TabFarm:CreateSection("Kyper Auto Farm")
 local isFarming = false
 local uiConnectionCore = nil
 local uiConnectionPlayer = nil
-
--- دالة فحص النصوص داخل الواجهات للبحث عن كلمة "Auth"
-local function isAllowedUI(gui)
-    if gui.Name == "KyperUI" or gui.Name == "KyperMobileAim" then return true end
-    
-    local allowed = false
-    pcall(function()
-        if string.find(string.lower(gui.Name), "auth") then allowed = true end
-        
-        for _, v in pairs(gui:GetDescendants()) do
-            if v:IsA("TextLabel") or v:IsA("TextButton") or v:IsA("TextBox") then
-                if v.Text and string.find(string.lower(v.Text), "auth") then
-                    allowed = true
-                    break
-                end
-            end
-            if string.find(string.lower(v.Name), "auth") then
-                allowed = true
-                break
-            end
-        end
-    end)
-    return allowed
-end
+local platformConnection = nil
 
 SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     if isFarming then 
@@ -372,70 +347,134 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         return 
     end
     isFarming = true
-    sendNotification("KyperHub", "Starting Farm... Please login if asked.")
     
     local guiTargetCore = game:GetService("CoreGui")
     if gethui then pcall(function() guiTargetCore = gethui() end) end
     local guiTargetPlayer = player:WaitForChild("PlayerGui")
 
-    -- مُختطف الواجهات الذكي (الذي يسمح للـ Auth فقط)
+    -- 1. مُختطف الواجهات وحجبها (UI Interceptor)
     local function blockUI(child)
-        -- ننتظر جزء بسيط جداً من الثانية لتتمكن الواجهة من رسم النصوص بداخلها
-        task.defer(function()
-            task.wait(0.1)
-            if not isAllowedUI(child) then
-                if child:IsA("ScreenGui") then
-                    child.Enabled = false
-                    child:GetPropertyChangedSignal("Enabled"):Connect(function() child.Enabled = false end)
-                elseif child:IsA("GuiObject") then
-                    child.Visible = false
-                    child:GetPropertyChangedSignal("Visible"):Connect(function() child.Visible = false end)
-                end
-                
-                task.spawn(function()
-                    for _, v in pairs(child:GetDescendants()) do
-                        if v:IsA("GuiObject") then
-                            v.Visible = false
-                            v:GetPropertyChangedSignal("Visible"):Connect(function() v.Visible = false end)
-                        end
-                    end
-                end)
+        if child.Name ~= "KyperUI" and child.Name ~= "KyperMobileAim" then
+            if child:IsA("ScreenGui") then
+                child.Enabled = false
+                child:GetPropertyChangedSignal("Enabled"):Connect(function() child.Enabled = false end)
+            elseif child:IsA("GuiObject") then
+                child.Visible = false
+                child:GetPropertyChangedSignal("Visible"):Connect(function() child.Visible = false end)
             end
-        end)
+            
+            task.spawn(function()
+                for _, v in pairs(child:GetDescendants()) do
+                    if v:IsA("GuiObject") then
+                        v.Visible = false
+                        v:GetPropertyChangedSignal("Visible"):Connect(function() v.Visible = false end)
+                    end
+                end
+            end)
+        end
     end
 
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
-    -- إخفاء الواجهة الرئيسية مؤقتاً لتسهيل إدخال الـ Key
-    Window.MainFrame.Visible = false
-    Window.OpenBtn.Visible = true
+    -- 2. مُختطف المنصات بالقرب الشديد من اللاعب (Proximity Pink Platform Hijacker)
+    platformConnection = RunService.Stepped:Connect(function()
+        local char = player.Character
+        local hrp = char and char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            for _, v in pairs(workspace:GetChildren()) do
+                if v:IsA("BasePart") then
+                    if (v.Position - hrp.Position).Magnitude < 12 then
+                        local logo = v:FindFirstChildOfClass("Decal") or v:FindFirstChildOfClass("Texture")
+                        if logo then
+                            logo:Destroy() 
+                            v.Name = "KyperPlatform" 
+                        end
+                    end
+                    
+                    if v.Name == "KyperPlatform" then
+                        v.Color = Color3.fromRGB(255, 105, 180) -- وردي مضيء
+                        v.Material = Enum.Material.Neon
+                        v.Transparency = 0.4
+                    end
+                end
+            end
+        end
+    end)
 
-    -- تشغيل سكربت الفارم
-    pcall(function()
-        loadstring(game:HttpGet("https://api.luaauth.com/loader/IrpglribYB3xIpFUCsTTpm7tr48y8Smb"))()
+    -- 3. نظام حظر وكاشف طائرات الهيلي (Heli Anti-Arrest Security Loop)
+    -- يعمل في الخلفية بفحص المسافة لتجنب اللاغ وينحر اللاعب لو اقترب من الهيلي
+    task.spawn(function()
+        while isFarming and task.wait(0.2) do
+            local char = player.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            
+            if hrp and hum and hum.Health > 0 then
+                -- فحص مجسمات الهيلي في الـ Workspace والـ Vehicles
+                local function checkHeli(parent)
+                    for _, v in pairs(parent:GetChildren()) do
+                        if v.Name == "Heli" then
+                            local primary = v.PrimaryPart or v:FindFirstChildWhichIsA("BasePart")
+                            if primary and (hrp.Position - primary.Position).Magnitude < 25 then
+                                hum.Health = 0 -- انتحار فوري
+                                sendNotification("KyperHub Security", "Heli detected near player! Character reset activated.")
+                                return true
+                            end
+                        end
+                    end
+                    return false
+                end
+                
+                if checkHeli(workspace) then break end
+                
+                local vehiclesFolder = workspace:FindFirstChild("Vehicles")
+                if vehiclesFolder and checkHeli(vehiclesFolder) then break end
+            end
+        end
+    end)
+
+    sendNotification("KyperHub", "Starting Auto Farm... Reloading UI shortly.")
+
+    -- 4. تشغيل الفارم وإعادة تحميل الواجهة
+    task.spawn(function()
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
+        end)
+        
+        task.wait(2.5)
+        
+        if guiTargetCore:FindFirstChild("KyperUI") then
+            guiTargetCore.KyperUI:Destroy()
+        end
+        
+        pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua"))()
+        end)
     end)
 end)
 
-SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fromRGB(255, 80, 80)}, function()
+SecRob:CreateButton({Name = "Stop Auto Farm", Color = Color3.fromRGB(255, 80, 80)}, function()
     if not isFarming then
         sendNotification("KyperHub", "Auto Farm is not running!")
         return
     end
     
     isFarming = false
-    sendNotification("KyperHub", "Stopping Farm... Rejoining!")
+    sendNotification("KyperHub", "Stopping Farm... Resetting Character!")
     
     if uiConnectionCore then uiConnectionCore:Disconnect(); uiConnectionCore = nil end
     if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
+    if platformConnection then platformConnection:Disconnect(); platformConnection = nil end
 
     pcall(function()
-        local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
-        if queue_on_teleport and KYPER_HUB_URL ~= "" then
-            queue_on_teleport('loadstring(game:HttpGet("' .. KYPER_HUB_URL .. '"))()')
-        end
+        getgenv().AutoRob = false
+        getgenv().AutoFarm = false
     end)
     
-    task.wait(1.5)
-    TeleportService:Teleport(game.PlaceId, player)
+    if player.Character and player.Character:FindFirstChild("Humanoid") then
+        player.Character.Humanoid.Health = 0
+    end
 end)
+
+SecRob:CreateLabel("Note: Do not start farm multiple times!")
