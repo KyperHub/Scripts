@@ -16,7 +16,7 @@ local StarterGui = game:GetService("StarterGui")
 -- UI Configuration (Mini Panel Size)
 -- ==========================================
 local UI_WIDTH = 450  
-local UI_HEIGHT = 320 
+local UI_HEIGHT = 400 
 local ALLOW_MULTIPLE_EXECUTIONS = false 
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
 -- ==========================================
