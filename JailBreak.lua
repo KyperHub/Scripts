@@ -289,7 +289,8 @@ function Kyper:CreateWindow(titleText)
                     TweenService:Create(Btn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(35, 35, 40)}):Play()
                 end)
             end
-            
+
+            -- تصميم السويتش الكلاسيكي (Visual Toggle)
             function SectionObj:CreateToggle(config, callback)
                 local state = config.Default or false
                 local Btn = Instance.new("TextButton", SectionFrame)
@@ -302,20 +303,26 @@ function Kyper:CreateWindow(titleText)
                 Btn.TextXAlignment = Enum.TextXAlignment.Left
                 Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4)
 
-                local StateLbl = Instance.new("TextLabel", Btn)
-                StateLbl.Size = UDim2.new(0, 40, 1, 0)
-                StateLbl.Position = UDim2.new(1, -45, 0, 0)
-                StateLbl.BackgroundTransparency = 1
-                StateLbl.Text = state and "ON" or "OFF"
-                StateLbl.TextColor3 = state and Color3.fromRGB(140, 0, 255) or Color3.fromRGB(100, 100, 105)
-                StateLbl.Font = Enum.Font.GothamBold
-                StateLbl.TextSize = 12
-                StateLbl.TextXAlignment = Enum.TextXAlignment.Right
+                -- خلفية السويتش
+                local ToggleBg = Instance.new("Frame", Btn)
+                ToggleBg.Size = UDim2.new(0, 32, 0, 16)
+                ToggleBg.Position = UDim2.new(1, -42, 0.5, -8)
+                ToggleBg.BackgroundColor3 = state and Color3.fromRGB(140, 0, 255) or Color3.fromRGB(60, 60, 65)
+                Instance.new("UICorner", ToggleBg).CornerRadius = UDim.new(1, 0)
+
+                -- الدائرة المتحركة
+                local ToggleCircle = Instance.new("Frame", ToggleBg)
+                ToggleCircle.Size = UDim2.new(0, 12, 0, 12)
+                ToggleCircle.Position = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
+                ToggleCircle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
 
                 Btn.MouseButton1Click:Connect(function()
                     state = not state
-                    StateLbl.Text = state and "ON" or "OFF"
-                    StateLbl.TextColor3 = state and Color3.fromRGB(140, 0, 255) or Color3.fromRGB(100, 100, 105)
+                    -- أنيميشن السويتش
+                    TweenService:Create(ToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = state and Color3.fromRGB(140, 0, 255) or Color3.fromRGB(60, 60, 65)}):Play()
+                    TweenService:Create(ToggleCircle, TweenInfo.new(0.2), {Position = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)}):Play()
+                    
                     pcall(callback, state)
                 end)
 
@@ -377,6 +384,7 @@ local uiConnectionCore = nil
 local uiConnectionPlayer = nil
 local platformConnection = nil
 
+-- زر التفعيل الكلاسيكي لخاصية Only Cars
 SecRob:CreateToggle({Name = "Only Cars (Anti-Heli)", Default = true}, function(state)
     isOnlyCarsEnabled = state
 end)
@@ -417,7 +425,7 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
-    -- 2. مُختطف المنصات بالقرب الشديد من اللاعب (Proximity Purple Platform Hijacker)
+    -- 2. مُختطف المنصات باللون البنفسجي بالقرب الشديد (Proximity Purple Platform Hijacker)
     platformConnection = RunService.Stepped:Connect(function()
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -433,7 +441,7 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
                     end
                     
                     if v.Name == "KyperPlatform" then
-                        v.Color = Color3.fromRGB(140, 0, 255) -- بنفسجي مضيء
+                        v.Color = Color3.fromRGB(140, 0, 255) -- بنفسجي
                         v.Material = Enum.Material.Neon
                         v.Transparency = 0.4
                     end
@@ -455,9 +463,8 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
                         for _, v in pairs(parent:GetChildren()) do
                             if v.Name == "Heli" then
                                 local primary = v.PrimaryPart or v:FindFirstChildWhichIsA("BasePart")
-                                -- المسافة قريبة جداً تكاد تلمسها
                                 if primary and (hrp.Position - primary.Position).Magnitude < 15 then
-                                    hum.Health = 0 -- قتل اللاعب
+                                    hum.Health = 0 
                                     sendNotification("KyperHub Security", "Heli nearby! Character reset to prevent arrest.")
                                     return true
                                 end
@@ -507,6 +514,7 @@ SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fro
     if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
     if platformConnection then platformConnection:Disconnect(); platformConnection = nil end
 
+    -- خروج ودخول تلقائي للسيرفر مع تشغيل السكربت مجدداً
     pcall(function()
         local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
         if queue_on_teleport and KYPER_HUB_URL ~= "" then
