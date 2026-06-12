@@ -1,6 +1,5 @@
 --[[
     KyperHub - Jailbreak (Lasion UI Edition)
-    Created For: Zordnnn
     Theme: Lasion Dark & Purple
 ]]
 
@@ -23,7 +22,6 @@ local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/h
 -- ==========================================
 
 local player = Players.LocalPlayer
-local mouse = player:GetMouse()
 
 if CoreGui:FindFirstChild("KyperUI") then
     if ALLOW_MULTIPLE_EXECUTIONS then
@@ -316,7 +314,7 @@ function Kyper:CreateWindow(titleText)
                 Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
 
                 Btn.MouseButton1Click:Connect(function()
-                    if isLocked then return end 
+                    if isLocked then return end
                     
                     state = not state
                     TweenService:Create(ToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = state and Color3.fromRGB(140, 0, 255) or Color3.fromRGB(60, 60, 65)}):Play()
@@ -328,7 +326,6 @@ function Kyper:CreateWindow(titleText)
                 pcall(callback, state)
             end
 
-            -- نظام شريط الـ FOV الجديد (Slider)
             function SectionObj:CreateSlider(config, callback)
                 local min = config.Min or 0
                 local max = config.Max or 100
@@ -445,6 +442,7 @@ SecInfo:CreateLabel("Head Admin: @fr._c")
 SecInfo:CreateLabel("Discord: https://discord.gg/kh1")
 SecInfo:CreateLabel("Website: https://kyperhub.github.io/Website/")
 
+
 -- [[ Combat Tab (Magic Bullet & Aimbot) ]]
 local TabCombat = Window:CreateTab("Combat")
 local SecMagic = TabCombat:CreateSection("Magic Bullet Settings")
@@ -454,6 +452,7 @@ local TeamCheck_Enabled = true
 local WallCheck_Enabled = true
 local ShowFOV_Enabled = false
 local FOV_Radius = 150
+local CurrentTarget = nil -- المتغير السري المعزول لحل مشكلة الكراش
 
 -- إعداد الـ FOV Circle
 local FOVCircle = Drawing.new("Circle")
@@ -485,15 +484,6 @@ SecMagic:CreateSlider({Name = "FOV Radius", Min = 50, Max = 600, Default = 150},
     FOVCircle.Radius = value
 end)
 
--- تحديث موقع الـ FOV مع الماوس
-RunService.RenderStepped:Connect(function()
-    if ShowFOV_Enabled then
-        local mousePos = UserInputService:GetMouseLocation()
-        FOVCircle.Position = mousePos
-    end
-end)
-
--- دوال الـ Aimbot والتحقق
 local function isVisible(targetPart)
     if not WallCheck_Enabled then return true end
     local origin = Camera.CFrame.Position
@@ -514,8 +504,6 @@ local function getClosestPlayerToCursor()
 
     for _, v in pairs(Players:GetPlayers()) do
         if v ~= player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
-            
-            -- فحص الفريق (Team Check)
             if TeamCheck_Enabled and v.Team == player.Team then
                 continue
             end
@@ -524,7 +512,6 @@ local function getClosestPlayerToCursor()
             if onScreen then
                 local distanceToMouse = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
                 if distanceToMouse < FOV_Radius and distanceToMouse < shortestDistance then
-                    -- فحص الجدار (Wall Check)
                     if isVisible(v.Character.Head) then
                         closestPlayer = v
                         shortestDistance = distanceToMouse
@@ -536,37 +523,47 @@ local function getClosestPlayerToCursor()
     return closestPlayer
 end
 
--- اختطاف الميتاتيبول لتوجيه الرصاص (Magic Bullet Hook)
+-- حلقة منفصلة للبحث عن الخصم في الخلفية لمنع اللاغ والانهيار (Anti-Crash Loop)
+RunService.RenderStepped:Connect(function()
+    if ShowFOV_Enabled then
+        FOVCircle.Position = UserInputService:GetMouseLocation()
+    end
+    
+    if MagicBullet_Enabled then
+        CurrentTarget = getClosestPlayerToCursor()
+    else
+        CurrentTarget = nil
+    end
+end)
+
+-- اختطاف الميتاتيبول لتوجيه الرصاص بسلاسة
 local mt = getrawmetatable(game)
 local oldNamecall = mt.__namecall
 setreadonly(mt, false)
 
 mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
     local args = {...}
+    local method = getnamecallmethod()
 
-    if MagicBullet_Enabled then
-        local target = getClosestPlayerToCursor()
-        if target and target.Character and target.Character:FindFirstChild("Head") then
-            -- توجيه مسار الرصاصة في أنظمة Raycast المعتادة في روبلوكس
-            if method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" then
-                local origin = args[1].Origin
-                local direction = (target.Character.Head.Position - origin).Unit * 1000
-                args[1] = Ray.new(origin, direction)
-                return oldNamecall(self, unpack(args))
-            elseif method == "Raycast" then
-                local origin = args[1]
-                local direction = (target.Character.Head.Position - origin).Unit * 1000
-                args[2] = direction
-                return oldNamecall(self, unpack(args))
-            end
+    -- فلترة سريعة: لا نتدخل إلا إذا كان الهدف موجوداً والحدث هو إطلاق نار (يمنع الكراش)
+    if MagicBullet_Enabled and CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("Head") then
+        if method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" then
+            local origin = args[1].Origin
+            local direction = (CurrentTarget.Character.Head.Position - origin).Unit * 1000
+            args[1] = Ray.new(origin, direction)
+            return oldNamecall(self, unpack(args))
+        elseif method == "Raycast" then
+            local origin = args[1]
+            local direction = (CurrentTarget.Character.Head.Position - origin).Unit * 1000
+            args[2] = direction
+            return oldNamecall(self, unpack(args))
         end
     end
+    
     return oldNamecall(self, ...)
 end)
 setreadonly(mt, true)
 
--- تنظيف الـ FOV عند حذف الواجهة
 Window.MainFrame.Destroying:Connect(function()
     FOVCircle:Remove()
 end)
@@ -585,11 +582,12 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     if isFarming then return end
     isFarming = true
     
+    sendNotification("KyperHub", "Auto Farm: ON")
+    
     local guiTargetCore = game:GetService("CoreGui")
     if gethui then pcall(function() guiTargetCore = gethui() end) end
     local guiTargetPlayer = player:WaitForChild("PlayerGui")
 
-    -- مُختطف الواجهات وحجبها
     local function blockUI(child)
         if child.Name ~= "KyperUI" and child.Name ~= "KyperMobileAim" then
             if child:IsA("ScreenGui") then
@@ -613,7 +611,6 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
-    -- منصة لون بنفسجي مضيء
     platformConnection = RunService.Stepped:Connect(function()
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -637,7 +634,6 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         end
     end)
 
-    -- نظام Only Cars (حماية ضد طائرات الهيليكوبتر)
     task.spawn(function()
         while isFarming and task.wait(0.2) do
             if isOnlyCarsEnabled then
@@ -687,6 +683,8 @@ end)
 SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fromRGB(255, 80, 80)}, function()
     if not isFarming then return end
     isFarming = false
+    
+    sendNotification("KyperHub", "Auto Farm: OFF")
     
     if uiConnectionCore then uiConnectionCore:Disconnect(); uiConnectionCore = nil end
     if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
