@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 local TeleportService = game:GetService("TeleportService")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
+local Camera = workspace.CurrentCamera
 
 -- ==========================================
 -- UI Configuration 
@@ -18,12 +19,11 @@ local StarterGui = game:GetService("StarterGui")
 local UI_WIDTH = 530  
 local UI_HEIGHT = 470 
 local ALLOW_MULTIPLE_EXECUTIONS = false 
-
--- رابط السكربت للتشغيل التلقائي عند الـ Rejoin
 local KYPER_HUB_URL = "https://raw.githubusercontent.com/KyperHub/Scripts/refs/heads/main/JailBreak.lua" 
 -- ==========================================
 
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
 
 if CoreGui:FindFirstChild("KyperUI") then
     if ALLOW_MULTIPLE_EXECUTIONS then
@@ -42,7 +42,7 @@ pcall(function()
     local oldSetCore
     oldSetCore = hookfunction(StarterGui.SetCore, function(self, name, data)
         if name == "SendNotification" and type(data) == "table" then
-            if data.Title ~= "KyperHub" then
+            if data.Title ~= "KyperHub" and data.Title ~= "KyperHub Security" then
                 return 
             end
         end
@@ -67,7 +67,7 @@ function Kyper:CreateWindow(titleText)
     OpenBtn.Position = UDim2.new(0, 20, 0, 20)
     OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
     OpenBtn.Text = "K"
-    OpenBtn.TextColor3 = Color3.fromRGB(140, 0, 255)
+    OpenBtn.TextColor3 = Color3.fromRGB(140, 0, 255) 
     OpenBtn.Font = Enum.Font.GothamBold
     OpenBtn.TextSize = 24
     OpenBtn.Visible = false
@@ -88,7 +88,7 @@ function Kyper:CreateWindow(titleText)
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
     
     local MainStroke = Instance.new("UIStroke", MainFrame)
-    MainStroke.Color = Color3.fromRGB(140, 0, 255)
+    MainStroke.Color = Color3.fromRGB(140, 0, 255) 
     MainStroke.Thickness = 1
 
     local Header = Instance.new("Frame", MainFrame)
@@ -276,7 +276,7 @@ function Kyper:CreateWindow(titleText)
                 Btn.Size = UDim2.new(1, 0, 0, 26)
                 Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
                 Btn.Text = "  " .. config.Name
-                Btn.TextColor3 = config.Color or Color3.fromRGB(200, 200, 205)
+                Btn.TextColor3 = Color3.fromRGB(200, 200, 205)
                 Btn.TextSize = 13
                 Btn.Font = Enum.Font.Gotham
                 Btn.TextXAlignment = Enum.TextXAlignment.Left
@@ -290,7 +290,6 @@ function Kyper:CreateWindow(titleText)
                 end)
             end
 
-            -- تصميم السويتش مع دعم ميزة "الإقفال" (Locked)
             function SectionObj:CreateToggle(config, callback)
                 local state = config.Default or false
                 local isLocked = config.Locked or false
@@ -317,7 +316,7 @@ function Kyper:CreateWindow(titleText)
                 Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
 
                 Btn.MouseButton1Click:Connect(function()
-                    if isLocked then return end -- يمنع الإيقاف نهائياً إذا كان مقفلاً
+                    if isLocked then return end 
                     
                     state = not state
                     TweenService:Create(ToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = state and Color3.fromRGB(140, 0, 255) or Color3.fromRGB(60, 60, 65)}):Play()
@@ -327,6 +326,82 @@ function Kyper:CreateWindow(titleText)
                 end)
 
                 pcall(callback, state)
+            end
+
+            -- نظام شريط الـ FOV الجديد (Slider)
+            function SectionObj:CreateSlider(config, callback)
+                local min = config.Min or 0
+                local max = config.Max or 100
+                local default = config.Default or min
+                local value = default
+
+                local SliderFrame = Instance.new("Frame", SectionFrame)
+                SliderFrame.Size = UDim2.new(1, 0, 0, 40)
+                SliderFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 26)
+                SliderFrame.BorderSizePixel = 0
+
+                local Label = Instance.new("TextLabel", SliderFrame)
+                Label.Size = UDim2.new(1, -10, 0, 20)
+                Label.Position = UDim2.new(0, 5, 0, 0)
+                Label.BackgroundTransparency = 1
+                Label.Text = config.Name
+                Label.TextColor3 = Color3.fromRGB(200, 200, 205)
+                Label.Font = Enum.Font.Gotham
+                Label.TextSize = 13
+                Label.TextXAlignment = Enum.TextXAlignment.Left
+
+                local ValueLabel = Instance.new("TextLabel", SliderFrame)
+                ValueLabel.Size = UDim2.new(1, -10, 0, 20)
+                ValueLabel.Position = UDim2.new(0, 5, 0, 0)
+                ValueLabel.BackgroundTransparency = 1
+                ValueLabel.Text = tostring(value)
+                ValueLabel.TextColor3 = Color3.fromRGB(140, 0, 255)
+                ValueLabel.Font = Enum.Font.GothamBold
+                ValueLabel.TextSize = 13
+                ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+                local BarBg = Instance.new("Frame", SliderFrame)
+                BarBg.Size = UDim2.new(1, -10, 0, 6)
+                BarBg.Position = UDim2.new(0, 5, 0, 26)
+                BarBg.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+                Instance.new("UICorner", BarBg).CornerRadius = UDim.new(1, 0)
+
+                local BarFill = Instance.new("Frame", BarBg)
+                BarFill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+                BarFill.BackgroundColor3 = Color3.fromRGB(140, 0, 255)
+                Instance.new("UICorner", BarFill).CornerRadius = UDim.new(1, 0)
+
+                local Button = Instance.new("TextButton", SliderFrame)
+                Button.Size = UDim2.new(1, 0, 1, 0)
+                Button.BackgroundTransparency = 1
+                Button.Text = ""
+
+                local dragging = false
+                Button.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = true
+                    end
+                end)
+                UserInputService.InputEnded:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                        dragging = false
+                    end
+                end)
+
+                UserInputService.InputChanged:Connect(function(input)
+                    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                        local mousePos = UserInputService:GetMouseLocation().X
+                        local barAbsPos = BarBg.AbsolutePosition.X
+                        local barAbsSize = BarBg.AbsoluteSize.X
+                        local percent = math.clamp((mousePos - barAbsPos) / barAbsSize, 0, 1)
+                        value = math.floor(min + (max - min) * percent)
+                        BarFill.Size = UDim2.new(percent, 0, 1, 0)
+                        ValueLabel.Text = tostring(value)
+                        pcall(callback, value)
+                    end
+                end)
+
+                pcall(callback, value)
             end
 
             function SectionObj:CreateLabel(text)
@@ -370,9 +445,131 @@ SecInfo:CreateLabel("Head Admin: @fr._c")
 SecInfo:CreateLabel("Discord: https://discord.gg/kh1")
 SecInfo:CreateLabel("Website: https://kyperhub.github.io/Website/")
 
-local SecStatus = TabHome:CreateSection("Status")
-SecStatus:CreateLabel("Supported game version!")
+-- [[ Combat Tab (Magic Bullet & Aimbot) ]]
+local TabCombat = Window:CreateTab("Combat")
+local SecMagic = TabCombat:CreateSection("Magic Bullet Settings")
 
+local MagicBullet_Enabled = false
+local TeamCheck_Enabled = true
+local WallCheck_Enabled = true
+local ShowFOV_Enabled = false
+local FOV_Radius = 150
+
+-- إعداد الـ FOV Circle
+local FOVCircle = Drawing.new("Circle")
+FOVCircle.Color = Color3.fromRGB(140, 0, 255)
+FOVCircle.Thickness = 1
+FOVCircle.Filled = false
+FOVCircle.Visible = false
+FOVCircle.Radius = FOV_Radius
+
+SecMagic:CreateToggle({Name = "Enable Magic Bullet", Default = false}, function(state)
+    MagicBullet_Enabled = state
+end)
+
+SecMagic:CreateToggle({Name = "Team Check", Default = true}, function(state)
+    TeamCheck_Enabled = state
+end)
+
+SecMagic:CreateToggle({Name = "Wall Check", Default = true}, function(state)
+    WallCheck_Enabled = state
+end)
+
+SecMagic:CreateToggle({Name = "Show FOV Circle", Default = false}, function(state)
+    ShowFOV_Enabled = state
+    FOVCircle.Visible = state
+end)
+
+SecMagic:CreateSlider({Name = "FOV Radius", Min = 50, Max = 600, Default = 150}, function(value)
+    FOV_Radius = value
+    FOVCircle.Radius = value
+end)
+
+-- تحديث موقع الـ FOV مع الماوس
+RunService.RenderStepped:Connect(function()
+    if ShowFOV_Enabled then
+        local mousePos = UserInputService:GetMouseLocation()
+        FOVCircle.Position = mousePos
+    end
+end)
+
+-- دوال الـ Aimbot والتحقق
+local function isVisible(targetPart)
+    if not WallCheck_Enabled then return true end
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin).Unit * (targetPart.Position - origin).Magnitude
+    local ray = Ray.new(origin, direction)
+    local hit, pos = workspace:FindPartOnRayWithIgnoreList(ray, {player.Character, Camera})
+    
+    if hit and hit:IsDescendantOf(targetPart.Parent) then
+        return true
+    end
+    return false
+end
+
+local function getClosestPlayerToCursor()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local mousePos = UserInputService:GetMouseLocation()
+
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= player and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+            
+            -- فحص الفريق (Team Check)
+            if TeamCheck_Enabled and v.Team == player.Team then
+                continue
+            end
+
+            local screenPos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
+            if onScreen then
+                local distanceToMouse = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
+                if distanceToMouse < FOV_Radius and distanceToMouse < shortestDistance then
+                    -- فحص الجدار (Wall Check)
+                    if isVisible(v.Character.Head) then
+                        closestPlayer = v
+                        shortestDistance = distanceToMouse
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- اختطاف الميتاتيبول لتوجيه الرصاص (Magic Bullet Hook)
+local mt = getrawmetatable(game)
+local oldNamecall = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if MagicBullet_Enabled then
+        local target = getClosestPlayerToCursor()
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            -- توجيه مسار الرصاصة في أنظمة Raycast المعتادة في روبلوكس
+            if method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRayWithWhitelist" or method == "FindPartOnRay" then
+                local origin = args[1].Origin
+                local direction = (target.Character.Head.Position - origin).Unit * 1000
+                args[1] = Ray.new(origin, direction)
+                return oldNamecall(self, unpack(args))
+            elseif method == "Raycast" then
+                local origin = args[1]
+                local direction = (target.Character.Head.Position - origin).Unit * 1000
+                args[2] = direction
+                return oldNamecall(self, unpack(args))
+            end
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+setreadonly(mt, true)
+
+-- تنظيف الـ FOV عند حذف الواجهة
+Window.MainFrame.Destroying:Connect(function()
+    FOVCircle:Remove()
+end)
 
 -- [[ Auto Farm Tab ]]
 local TabFarm = Window:CreateTab("Auto Farm")
@@ -384,17 +581,15 @@ local uiConnectionCore = nil
 local uiConnectionPlayer = nil
 local platformConnection = nil
 
--- زر تشغيل الفارم
 SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     if isFarming then return end
     isFarming = true
-    
-    sendNotification("KyperHub", "Auto Farm: ON")
     
     local guiTargetCore = game:GetService("CoreGui")
     if gethui then pcall(function() guiTargetCore = gethui() end) end
     local guiTargetPlayer = player:WaitForChild("PlayerGui")
 
+    -- مُختطف الواجهات وحجبها
     local function blockUI(child)
         if child.Name ~= "KyperUI" and child.Name ~= "KyperMobileAim" then
             if child:IsA("ScreenGui") then
@@ -418,6 +613,7 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
+    -- منصة لون بنفسجي مضيء
     platformConnection = RunService.Stepped:Connect(function()
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -432,7 +628,7 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
                         end
                     end
                     if v.Name == "KyperPlatform" then
-                        v.Color = Color3.fromRGB(140, 0, 255)
+                        v.Color = Color3.fromRGB(140, 0, 255) 
                         v.Material = Enum.Material.Neon
                         v.Transparency = 0.4
                     end
@@ -441,6 +637,7 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         end
     end)
 
+    -- نظام Only Cars (حماية ضد طائرات الهيليكوبتر)
     task.spawn(function()
         while isFarming and task.wait(0.2) do
             if isOnlyCarsEnabled then
@@ -487,12 +684,9 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     end)
 end)
 
--- زر إيقاف الفارم
 SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fromRGB(255, 80, 80)}, function()
     if not isFarming then return end
-    
     isFarming = false
-    sendNotification("KyperHub", "Auto Farm: OFF")
     
     if uiConnectionCore then uiConnectionCore:Disconnect(); uiConnectionCore = nil end
     if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
@@ -509,7 +703,6 @@ SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fro
     TeleportService:Teleport(game.PlaceId, player)
 end)
 
--- زر Only Cars (آخر شيء ومقفل لا يمكن إيقافه)
 SecRob:CreateToggle({Name = "Only Cars", Default = true, Locked = true}, function(state)
-    isOnlyCarsEnabled = true -- يظل مفعلاً دائماً لحماية اللاعب
+    isOnlyCarsEnabled = true 
 end)
