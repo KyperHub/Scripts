@@ -36,13 +36,13 @@ end
 if CoreGui:FindFirstChild("KyperMobileAim") then CoreGui.KyperMobileAim:Destroy() end
 
 -- ==========================================
--- نظام حظر الإشعارات الغريبة (Notification Blocker)
+-- نظام حظر الإشعارات الغريبة
 -- ==========================================
 pcall(function()
     local oldSetCore
     oldSetCore = hookfunction(StarterGui.SetCore, function(self, name, data)
         if name == "SendNotification" and type(data) == "table" then
-            if data.Title ~= "KyperHub" and data.Title ~= "KyperHub Security" then
+            if data.Title ~= "KyperHub" then
                 return 
             end
         end
@@ -67,7 +67,7 @@ function Kyper:CreateWindow(titleText)
     OpenBtn.Position = UDim2.new(0, 20, 0, 20)
     OpenBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 34)
     OpenBtn.Text = "K"
-    OpenBtn.TextColor3 = Color3.fromRGB(140, 0, 255) -- بنفسجي
+    OpenBtn.TextColor3 = Color3.fromRGB(140, 0, 255)
     OpenBtn.Font = Enum.Font.GothamBold
     OpenBtn.TextSize = 24
     OpenBtn.Visible = false
@@ -88,7 +88,7 @@ function Kyper:CreateWindow(titleText)
     Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
     
     local MainStroke = Instance.new("UIStroke", MainFrame)
-    MainStroke.Color = Color3.fromRGB(140, 0, 255) -- بنفسجي
+    MainStroke.Color = Color3.fromRGB(140, 0, 255)
     MainStroke.Thickness = 1
 
     local Header = Instance.new("Frame", MainFrame)
@@ -290,9 +290,10 @@ function Kyper:CreateWindow(titleText)
                 end)
             end
 
-            -- تصميم السويتش الكلاسيكي (Visual Toggle)
+            -- تصميم السويتش مع دعم ميزة "الإقفال" (Locked)
             function SectionObj:CreateToggle(config, callback)
                 local state = config.Default or false
+                local isLocked = config.Locked or false
                 local Btn = Instance.new("TextButton", SectionFrame)
                 Btn.Size = UDim2.new(1, 0, 0, 26)
                 Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
@@ -303,14 +304,12 @@ function Kyper:CreateWindow(titleText)
                 Btn.TextXAlignment = Enum.TextXAlignment.Left
                 Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4)
 
-                -- خلفية السويتش
                 local ToggleBg = Instance.new("Frame", Btn)
                 ToggleBg.Size = UDim2.new(0, 32, 0, 16)
                 ToggleBg.Position = UDim2.new(1, -42, 0.5, -8)
                 ToggleBg.BackgroundColor3 = state and Color3.fromRGB(140, 0, 255) or Color3.fromRGB(60, 60, 65)
                 Instance.new("UICorner", ToggleBg).CornerRadius = UDim.new(1, 0)
 
-                -- الدائرة المتحركة
                 local ToggleCircle = Instance.new("Frame", ToggleBg)
                 ToggleCircle.Size = UDim2.new(0, 12, 0, 12)
                 ToggleCircle.Position = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)
@@ -318,8 +317,9 @@ function Kyper:CreateWindow(titleText)
                 Instance.new("UICorner", ToggleCircle).CornerRadius = UDim.new(1, 0)
 
                 Btn.MouseButton1Click:Connect(function()
+                    if isLocked then return end -- يمنع الإيقاف نهائياً إذا كان مقفلاً
+                    
                     state = not state
-                    -- أنيميشن السويتش
                     TweenService:Create(ToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = state and Color3.fromRGB(140, 0, 255) or Color3.fromRGB(60, 60, 65)}):Play()
                     TweenService:Create(ToggleCircle, TweenInfo.new(0.2), {Position = state and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)}):Play()
                     
@@ -350,7 +350,7 @@ function Kyper:CreateWindow(titleText)
 end
 
 local function sendNotification(title, text)
-    pcall(function() StarterGui:SetCore("SendNotification", {Title = title; Text = text; Duration = 5}) end)
+    pcall(function() StarterGui:SetCore("SendNotification", {Title = title; Text = text; Duration = 3}) end)
 end
 
 -- ==========================================
@@ -384,23 +384,17 @@ local uiConnectionCore = nil
 local uiConnectionPlayer = nil
 local platformConnection = nil
 
--- زر التفعيل الكلاسيكي لخاصية Only Cars
-SecRob:CreateToggle({Name = "Only Cars (Anti-Heli)", Default = true}, function(state)
-    isOnlyCarsEnabled = state
-end)
-
+-- زر تشغيل الفارم
 SecRob:CreateButton({Name = "Start Auto Farm"}, function()
-    if isFarming then 
-        sendNotification("KyperHub", "Auto Farm is already running!")
-        return 
-    end
+    if isFarming then return end
     isFarming = true
+    
+    sendNotification("KyperHub", "Auto Farm: ON")
     
     local guiTargetCore = game:GetService("CoreGui")
     if gethui then pcall(function() guiTargetCore = gethui() end) end
     local guiTargetPlayer = player:WaitForChild("PlayerGui")
 
-    -- 1. مُختطف الواجهات وحجبها (UI Interceptor)
     local function blockUI(child)
         if child.Name ~= "KyperUI" and child.Name ~= "KyperMobileAim" then
             if child:IsA("ScreenGui") then
@@ -410,7 +404,6 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
                 child.Visible = false
                 child:GetPropertyChangedSignal("Visible"):Connect(function() child.Visible = false end)
             end
-            
             task.spawn(function()
                 for _, v in pairs(child:GetDescendants()) do
                     if v:IsA("GuiObject") then
@@ -425,7 +418,6 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     uiConnectionCore = guiTargetCore.ChildAdded:Connect(blockUI)
     uiConnectionPlayer = guiTargetPlayer.ChildAdded:Connect(blockUI)
 
-    -- 2. مُختطف المنصات باللون البنفسجي بالقرب الشديد (Proximity Purple Platform Hijacker)
     platformConnection = RunService.Stepped:Connect(function()
         local char = player.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -439,9 +431,8 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
                             v.Name = "KyperPlatform" 
                         end
                     end
-                    
                     if v.Name == "KyperPlatform" then
-                        v.Color = Color3.fromRGB(140, 0, 255) -- بنفسجي
+                        v.Color = Color3.fromRGB(140, 0, 255)
                         v.Material = Enum.Material.Neon
                         v.Transparency = 0.4
                     end
@@ -450,7 +441,6 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         end
     end)
 
-    -- 3. نظام Only Cars (حماية ضد طائرات الهيليكوبتر)
     task.spawn(function()
         while isFarming and task.wait(0.2) do
             if isOnlyCarsEnabled then
@@ -465,7 +455,6 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
                                 local primary = v.PrimaryPart or v:FindFirstChildWhichIsA("BasePart")
                                 if primary and (hrp.Position - primary.Position).Magnitude < 15 then
                                     hum.Health = 0 
-                                    sendNotification("KyperHub Security", "Heli nearby! Character reset to prevent arrest.")
                                     return true
                                 end
                             end
@@ -481,9 +470,6 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
         end
     end)
 
-    sendNotification("KyperHub", "Starting Auto Farm... Reloading UI shortly.")
-
-    -- 4. التسلسل الزمني المطلوب
     task.spawn(function()
         pcall(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/BlitzIsKing/UniversalFarm/refs/heads/main/Jailbreak/autoRob"))()
@@ -501,20 +487,17 @@ SecRob:CreateButton({Name = "Start Auto Farm"}, function()
     end)
 end)
 
+-- زر إيقاف الفارم
 SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fromRGB(255, 80, 80)}, function()
-    if not isFarming then
-        sendNotification("KyperHub", "Auto Farm is not running!")
-        return
-    end
+    if not isFarming then return end
     
     isFarming = false
-    sendNotification("KyperHub", "Stopping Farm... Rejoining to clean memory!")
+    sendNotification("KyperHub", "Auto Farm: OFF")
     
     if uiConnectionCore then uiConnectionCore:Disconnect(); uiConnectionCore = nil end
     if uiConnectionPlayer then uiConnectionPlayer:Disconnect(); uiConnectionPlayer = nil end
     if platformConnection then platformConnection:Disconnect(); platformConnection = nil end
 
-    -- خروج ودخول تلقائي للسيرفر مع تشغيل السكربت مجدداً
     pcall(function()
         local queue_on_teleport = queue_on_teleport or (syn and syn.queue_on_teleport) or (fluxus and fluxus.queue_on_teleport)
         if queue_on_teleport and KYPER_HUB_URL ~= "" then
@@ -526,4 +509,7 @@ SecRob:CreateButton({Name = "Stop Auto Farm (Rejoin Server)", Color = Color3.fro
     TeleportService:Teleport(game.PlaceId, player)
 end)
 
-SecRob:CreateLabel("Note: Do not start farm multiple times!")
+-- زر Only Cars (آخر شيء ومقفل لا يمكن إيقافه)
+SecRob:CreateToggle({Name = "Only Cars", Default = true, Locked = true}, function(state)
+    isOnlyCarsEnabled = true -- يظل مفعلاً دائماً لحماية اللاعب
+end)
